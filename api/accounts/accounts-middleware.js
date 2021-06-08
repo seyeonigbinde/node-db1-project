@@ -35,7 +35,16 @@ exports.checkAccountPayload = (req, res, next) => {
 }
 
 exports.checkAccountNameUnique = (req, res, next) => {
-  // DO YOUR MAGIC
+  const newName = req.body.name
+  if ( name.trim() === newName.trim() ) {
+    next({
+      message: 'that name is taken',
+      status: 400,
+    })
+  } else {
+    req.accounts = { name: req.body.name.trim() }
+    next()
+  }
 }
 
 exports.checkAccountId = (req, res, next) => {
