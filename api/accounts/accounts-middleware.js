@@ -1,69 +1,54 @@
 const Accounts = require('./accounts-model')
+const db = require('../../data/db-config');
 
 exports.checkAccountPayload = (req, res, next) => {
+  const error = {status: 400}
   const { name , budget} = req.body
-  if ( !name || !budget ) {
-    next({
-      message: 'name and budget are required',
-      status: 400,
-    })
-  }
-    else if ( typeof name !== 'string') {
-      next({
-        message: 'name of account must be a string',
-        status: 400,
-      })
-    }
-      else if ( name.trim().length >= 3 <= 100) {
-        next({
-          message: 'name of account must be between 3 and 100',
-          status: 400,
-        })
-      }
-        else if ( typeof budget !== 'number') {
-          next({
-            message: 'budget of account must be a number',
-            status: 400,
-          })
-        }  
-          else if ( budget.trim() === -1 || > 1000000) {
-            next({
-              message: 'name of account must be between 3 and 100',
-              status: 400,
-            })
+  if ( name === undefined || budget === undefined ) {
+      error.message = 'name and budget are required'
+  } else if ( typeof name !== 'string') {
+    error.message = 'name of account must be a string'
+  } else if ( name.trim().length < 3 || name.trim().length > 100) {
+    error.message = 'name of account must be between 3 and 100'
+  } else if ( typeof budget !== 'number' || isNaN(budget)) {
+    error.message = 'budget of account must be a number'
+  }  else if ( budget < 0 || budget > 1000000 ) {
+    error.message = 'budget of account is too large or too small'
+  } 
+  if  (error.message) {
+    next(error)
   } else {
-    req.accounts = { name: req.body.name.trim() }
-    req.accounts = { name: req.body.budget.trim() }
     next()
   }
 }
 
-exports.checkAccountNameUnique = (req, res, next) => {
-  const newName = req.body.name
-  if ( name.trim() === newName.trim() ) {
-    next({
-      message: 'that name is taken',
-      status: 400,
-    })
-  } else {
-    req.accounts = { name: req.body.name.trim() }
-    next()
-  }
-}
 
-exports.checkAccountId = (req, res, next) => {
-  Accounts.get(req.params.id)
-  .then(account => {
-    if (!account) {
-      res.status(404).json({
-        error: `account not found`
-      })
+exports.checkAccountNameUnique = async (req, res, next) => {
+  try{
+    const existing = await db('accounts')
+    .where('name', req.body.name)
+    .first()
+
+    if(existing){
+      next({status: 400, message: `that name is taken`})
     } else {
-      req.accounts = account
       next()
     }
-  })
-  .catch(err => {
+  } catch (err){
     next(err)
-  })
+  }
+}
+
+exports.checkAccountId = async (req, res, next) => {
+  try {
+    const account = await Accounts.getById(req.params.id)
+    if(!account) {
+      next({status: 404, message: `account not found`})
+    } else {
+      req.account = account
+      next()
+    }
+  }catch(err) {
+    next(err)
+  }
 }

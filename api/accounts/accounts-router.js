@@ -8,45 +8,51 @@ const {
 
 const Account = require('./accounts-model');
 
-router.get('/', (req, res, next) => {
-  Account.get(req.query.length)
-  .then(account => {
-    res.status(200).json(account);
-  })
-  .catch(next)
+router.get('/', async (req, res, next) => {
+  try{
+    const accounts = await Account.getAll()
+    res.json(accounts)
+} catch (err){
+    next(err)
+}
 })
 
 router.get('/:id', checkAccountId, (req, res, next) => {
   res.json(req.account)
 })
 
-router.post('/', checkAccountPayload, checkAccountNameUnique, (req, res, next) => {
-  const postAccount = { ...req.body};
-  Account.insert(postAccount)
-    .then(account => {
-      res.status(201).json(account);
+router.post('/', checkAccountPayload, 
+checkAccountNameUnique, async (req, res, next) => {
+  try{
+    const newAccount = await Account.create({
+        name: req.body.name.trim(),
+        budget: req.body.budget,
     })
-    .catch(error => {
-      next(error)
-    });
+    res.status(201).json(newAccount)
+  }
+  catch(error) {
+    next(error)
+  }
 })
 
-router.put('/:id', checkAccountPayload, checkAccountId, checkAccountNameUnique, (req, res, next) => {
-  Account.update(req.params.id, req.body)
-  .then(account => {
-    res.status(200).json(account);
-  })
-  .catch(error => {
-    next(error)
-  });
+router.put('/:id', checkAccountPayload, checkAccountId, 
+ async (req, res, next) => {
+  const updated = await Account.updateById(req.params.id, req.body)
+  res.json(updated)
+  try {
+    res.json('updated account')
+  } catch (err) {
+    next(err)
+  }
 });
 
-router.delete('/:id', (req, res, next) => {
-  Account.remove(req.params.id)
-  .then(() => {
-    res.status(200).json({ message: 'The account has been nuked' });
-  })
-  .catch(next);
+router.delete('/:id', checkAccountId, async (req, res, next) => {
+  try{
+      await Account.deleteById(res.params.id)
+      res.json(req.account)
+  } catch (err){
+    next(err)
+}
 })
 
 router.use((err, req, res, next) => { // eslint-disable-line
